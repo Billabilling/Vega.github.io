@@ -1,0 +1,121 @@
+{
+    "$schema": "https://vega.github.io/schema/vega/v5.json",
+    "background": "white",
+    "padding": 5,
+    "title": {"text": "Daily PM10 in year 2018", "frame": "group"},
+    "style": "cell",
+    "data": [
+      {
+        "name": "source_0",
+        "url": "https://raw.githubusercontent.com/Maplub/AirQualityData/master/PM10_2018_daily.csv",
+        "format": {"type": "csv", "parse": {"time": "date"}, "delimiter": ","},
+        "transform": [
+          {
+            "field": "time",
+            "type": "timeunit",
+            "units": ["date"],
+            "as": ["date_time", "date_time_end"]
+          },
+          {
+            "field": "time",
+            "type": "timeunit",
+            "units": ["month"],
+            "as": ["month_time", "month_time_end"]
+          },
+          {
+            "type": "aggregate",
+            "groupby": ["date_time", "month_time"],
+            "ops": ["mean"],
+            "fields": ["pm10"],
+            "as": ["mean_pm10"]
+          },
+          {
+            "type": "filter",
+            "expr": "isValid(datum[\"mean_pm10\"]) && isFinite(+datum[\"mean_pm10\"])"
+          }
+        ]
+      }
+    ],
+    "signals": [
+      {"name": "x_step", "value": 13},
+      {"name": "width", "update": "bandspace(domain('x').length, 0, 0) * x_step"},
+      {"name": "y_step", "value": 13},
+      {"name": "height", "update": "bandspace(domain('y').length, 0, 0) * y_step"}
+    ],
+    "marks": [
+      {
+        "name": "marks",
+        "type": "rect",
+        "style": ["rect"],
+        "from": {"data": "source_0"},
+        "encode": {
+          "update": {
+            "fill": {"scale": "color", "field": "mean_pm10"},
+            "description": {
+              "signal": "\"Day: \" + (timeFormat(datum[\"date_time\"], '%e')) + \"; Month: \" + (timeFormat(datum[\"month_time\"], timeUnitSpecifier([\"month\"], {\"year-month\":\"%b %Y \",\"year-month-date\":\"%b %d, %Y \"}))) + \"; Mean of pm10: \" + (format(datum[\"mean_pm10\"], \"\"))"
+            },
+            "x": {"scale": "x", "field": "date_time"},
+            "width": {"scale": "x", "band": 1},
+            "y": {"scale": "y", "field": "month_time"},
+            "height": {"scale": "y", "band": 1}
+          }
+        }
+      }
+    ],
+    "scales": [
+      {
+        "name": "x",
+        "type": "band",
+        "domain": {"data": "source_0", "field": "date_time", "sort": true},
+        "range": {"step": {"signal": "x_step"}},
+        "paddingInner": 0,
+        "paddingOuter": 0
+      },
+      {
+        "name": "y",
+        "type": "band",
+        "domain": {"data": "source_0", "field": "month_time", "sort": true},
+        "range": {"step": {"signal": "y_step"}},
+        "paddingInner": 0,
+        "paddingOuter": 0
+      },
+      {
+        "name": "color",
+        "type": "linear",
+        "domain": {"data": "source_0", "field": "mean_pm10"},
+        "range": "heatmap",
+        "interpolate": "hcl",
+        "zero": false
+      }
+    ],
+    "axes": [
+      {
+        "scale": "x",
+        "orient": "bottom",
+        "grid": false,
+        "title": "Day",
+        "format": "%e",
+        "labelAngle": 0,
+        "formatType": "time",
+        "labelBaseline": "top",
+        "labelOverlap": true,
+        "zindex": 1
+      },
+      {
+        "scale": "y",
+        "orient": "left",
+        "grid": false,
+        "title": "Month",
+        "format": {
+          "signal": "timeUnitSpecifier([\"month\"], {\"year-month\":\"%b %Y \",\"year-month-date\":\"%b %d, %Y \"})"
+        },
+        "formatType": "time",
+        "labelOverlap": true,
+        "zindex": 1
+      }
+    ],
+    "legends": [
+      {"fill": "color", "gradientLength": {"signal": "clamp(height, 64, 200)"}}
+    ],
+    "config": {"axis": {"domain": true}, "style": {"cell": {"strokeWidth": 0}}}
+  }
